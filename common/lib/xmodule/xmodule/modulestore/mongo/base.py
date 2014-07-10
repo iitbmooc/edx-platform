@@ -34,6 +34,7 @@ from xblock.exceptions import InvalidScopeError
 from xblock.fields import Scope, ScopeIds, Reference, ReferenceList, ReferenceValueDict
 
 from xmodule.modulestore import ModuleStoreWriteBase, ModuleStoreEnum
+from xmodule.modulestore.draft_and_published import ModuleStoreDraftAndPublished
 from opaque_keys.edx.locations import Location
 from xmodule.modulestore.exceptions import ItemNotFoundError, InvalidLocationError, ReferentialIntegrityError
 from xmodule.modulestore.inheritance import own_metadata, InheritanceMixin, inherit_metadata, InheritanceKeyValueStore
@@ -328,7 +329,7 @@ def as_published(location):
     return location.replace(revision=MongoRevisionKey.published)
 
 
-class MongoModuleStore(ModuleStoreWriteBase):
+class MongoModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
     """
     A Mongodb backed ModuleStore
     """
@@ -346,7 +347,7 @@ class MongoModuleStore(ModuleStoreWriteBase):
         :param doc_store_config: must have a host, db, and collection entries. Other common entries: port, tz_aware.
         """
 
-        super(MongoModuleStore, self).__init__(contentstore, **kwargs)
+        super(MongoModuleStore, self).__init__(contentstore=contentstore, **kwargs)
 
         def do_connection(
             db, collection, host, port=27017, tz_aware=True, user=None, password=None, **kwargs

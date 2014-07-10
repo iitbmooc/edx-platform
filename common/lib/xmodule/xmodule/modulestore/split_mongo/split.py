@@ -297,17 +297,17 @@ class SplitMongoModuleStore(ModuleStoreWriteBase):
         }
         return envelope
 
-    def get_courses(self, branch=ModuleStoreEnum.BranchName.draft, qualifiers=None):
+    def get_courses(self, branch, qualifiers=None):
         '''
         Returns a list of course descriptors matching any given qualifiers.
 
         qualifiers should be a dict of keywords matching the db fields or any
         legal query for mongo to use against the active_versions collection.
 
-        Note, this is to find the current head of the named branch type
-        (e.g., ModuleStoreEnum.BranchName.draft). To get specific versions via guid use get_course.
+        Note, this is to find the current head of the named branch type.
+        To get specific versions via guid use get_course.
 
-        :param branch: the branch for which to return courses. Default value is ModuleStoreEnum.BranchName.draft.
+        :param branch: the branch for which to return courses.
         :param qualifiers: an optional dict restricting which elements should match
         '''
         if qualifiers is None:
@@ -379,20 +379,6 @@ class SplitMongoModuleStore(ModuleStoreWriteBase):
             return False
 
         return self._get_block_from_structure(course_structure, usage_key.block_id) is not None
-
-    def has_changes(self, usage_key):
-        """
-        Checks if the given block has unpublished changes
-        :param usage_key: the block to check
-        :return: True if the draft and published versions differ
-        """
-        draft = self.get_item(usage_key.for_branch(ModuleStoreEnum.BranchName.draft))
-        try:
-            published = self.get_item(usage_key.for_branch(ModuleStoreEnum.BranchName.published))
-        except ItemNotFoundError:
-            return True
-
-        return draft.update_version != published.update_version
 
     def get_item(self, usage_key, depth=0):
         """
@@ -886,8 +872,8 @@ class SplitMongoModuleStore(ModuleStoreWriteBase):
         )
 
     def create_course(
-        self, org, offering, user_id, fields=None,
-        master_branch=ModuleStoreEnum.BranchName.draft, versions_dict=None, root_category='course',
+        self, org, offering, user_id, master_branch, fields=None,
+        versions_dict=None, root_category='course',
         root_block_id='course', **kwargs
     ):
         """
@@ -1228,15 +1214,13 @@ class SplitMongoModuleStore(ModuleStoreWriteBase):
                 if key not in new_keys or original_fields[key] != settings[key]:
                     return True
 
-    def xblock_publish(self, user_id, source_course, destination_course, subtree_list, blacklist):
+    def copy(self, user_id, source_course, destination_course, subtree_list=None, blacklist=None):
         """
-        Publishes each xblock in subtree_list and those blocks descendants excluding blacklist
+        Copies each xblock in subtree_list and those blocks descendants excluding blacklist
         from source_course to destination_course.
 
-        To delete a block, publish its parent. You can blacklist the other sibs to keep them from
-        being refreshed. You can also just call delete_item on the destination.
-
-        To unpublish a block, call delete_item on the destination.
+        To delete a block in the destination_course, copy its parent and blacklist the other
+        sibs to keep them from being copies. You can also just call delete_item on the destination.
 
         Ensures that each subtree occurs in the same place in destination as it does in source. If any
         of the source's subtree parents are missing from destination, it raises ItemNotFound([parent_ids]).
@@ -1311,10 +1295,6 @@ class SplitMongoModuleStore(ModuleStoreWriteBase):
         # update the db
         self.db_connection.insert_structure(destination_structure)
         self._update_head(index_entry, destination_course.branch, destination_structure['_id'])
-
-    def unpublish(self, location, user_id):
-        published_location = location.replace(branch=ModuleStoreEnum.BranchName.published)
-        self.delete_item(published_location, user_id)
 
     def update_course_index(self, updated_index_entry):
         """
@@ -1398,18 +1378,6 @@ class SplitMongoModuleStore(ModuleStoreWriteBase):
         # We do NOT call the super class here since we need to keep the assets
         # in case the course is later restored.
         # super(SplitMongoModuleStore, self).delete_course(course_key, user_id)
-
-    def revert_to_published(self, location, user_id=None):
-        """
-        Reverts an item to its last published version (recursively traversing all of its descendants).
-        If no published version exists, a VersionConflictError is thrown.
-
-        If a published version exists but there is no draft version of this item or any of its descendants, this
-        method is a no-op.
-
-        :raises InvalidVersionError: if no published version exists for the location specified
-        """
-        raise NotImplementedError()
 
     def inherit_settings(self, block_map, block_json, inheriting_settings=None):
         """
@@ -1819,24 +1787,3 @@ class SplitMongoModuleStore(ModuleStoreWriteBase):
         """
         return {ModuleStoreEnum.Type.split: self.db_connection.heartbeat()}
 
-    def compute_publish_state(self, xblock):
-        """
-        Returns whether this xblock is draft, public, or private.
-
-        Returns:
-            PublishState.draft - content is in the process of being edited, but still has a previous
-                version deployed to LMS
-            PublishState.public - content is locked and deployed to LMS
-            PublishState.private - content is editable and not deployed to LMS
-        """
-        # TODO implement
-        raise NotImplementedError()
-
-    def convert_to_draft(self, location, user_id):
-        """
-        Create a copy of the source and mark its revision as draft.
-
-        :param source: the location of the source (its revision must be None)
-        """
-        # This is a no-op in Split since a draft version of the data always remains
-        pass
