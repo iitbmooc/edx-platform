@@ -906,7 +906,7 @@ class GroupConfiguration(object):
         if not self.configuration.get('version'):
             self.configuration['version'] = UserPartition.VERSION
 
-        for group in self.configuration['groups']:
+        for group in self.configuration.get('groups', []):
             group['version'] = Group.VERSION
 
     def validate(self):
@@ -917,7 +917,7 @@ class GroupConfiguration(object):
             raise GroupConfigurationsValidationError(_("must have name of the configuration"))
         if not isinstance(self.configuration.get("description"), basestring):
             raise GroupConfigurationsValidationError(_("must have description of the configuration"))
-        if len(self.configuration.get('groups', '')) < 2:
+        if len(self.configuration.get('groups', [])) < 2:
             raise GroupConfigurationsValidationError(_("must have at least two groups"))
 
     def assign_id(self, configuration_id=None):
