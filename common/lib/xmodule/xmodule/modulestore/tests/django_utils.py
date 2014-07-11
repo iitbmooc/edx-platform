@@ -193,9 +193,7 @@ class ModuleStoreTestCase(TestCase):
         If using a Mongo-backed modulestore & contentstore, drop the collections.
         """
         module_store = modulestore()
-        if hasattr(module_store, '_drop_all_databases'):
-            module_store._drop_all_databases()
-        elif hasattr(module_store, '_drop_database'):
+        if hasattr(module_store, '_drop_database'):
             module_store._drop_database()
         _CONTENTSTORE.clear()
 

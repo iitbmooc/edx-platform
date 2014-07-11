@@ -185,7 +185,7 @@ def reset_databases(scenario):
     whereas modulestore data is in unique collection names.  This data is created implicitly during the scenarios.
     If no data is created during the test, these lines equivilently do nothing.
     '''
-    xmodule.modulestore.django.modulestore()._drop_all_databases()
+    xmodule.modulestore.django.modulestore()._drop_database()
     xmodule.modulestore.django.clear_existing_modulestores()
     _CONTENTSTORE.clear()
 

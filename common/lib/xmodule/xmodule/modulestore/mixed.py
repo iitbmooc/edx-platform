@@ -398,7 +398,7 @@ class MixedModuleStore(ModuleStoreWriteBase):
         for modulestore in self.modulestores:
             modulestore.close_connections()
 
-    def _drop_all_databases(self):
+    def _drop_database(self):
         """
         A destructive operation to drop all databases and close all db connections.
         Intended to be used by test code for cleanup.
