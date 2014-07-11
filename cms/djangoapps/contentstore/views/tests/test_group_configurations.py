@@ -2,177 +2,92 @@ import json
 import mock
 from contentstore.utils import reverse_course_url
 from contentstore.tests.utils import CourseTestCase
-from xmodule.partitions.partitions import UserPartition
+from xmodule.partitions.partitions import Group, UserPartition
 
 
-class GroupConfigurationsCreateTestCase(CourseTestCase):
+GROUP_CONFIGURATION_JSON = {
+    u'name': u'Test name',
+    u'description': u'Test description',
+    u'groups': [
+        {u'name': u'Group A'},
+        {u'name': u'Group B'},
+    ],
+}
+
+
+class MockedUuid(object):
+    ID = u'0e11749e-0682-11e4-9247-080027880ca6'
+
+    def __init__(self):
+        self.generator = self.nextNumber()
+
+    def __str__(self):
+        return self.ID
+
+    @property
+    def int(self):
+        return self.generator.next()
+
+    def nextNumber(self):
+        num = long('{0:0<39d}'.format(1))
+        while True:
+            yield num
+            num += long('{0:0<39d}'.format(1))
+
+
+class GroupConfigurationsBaseTestCase(object):
     """
-    Test cases for creating a new group configurations.
+    Base test cases for the group configurations.
     """
-
     def setUp(self):
         """
         Set up a url and group configuration content for tests.
         """
-        super(GroupConfigurationsCreateTestCase, self).setUp()
-        self.url = reverse_course_url('group_configurations_list_handler', self.course.id)
-        self.group_configuration_json = {
-            u'description': u'Test description',
-            u'name': u'Test name',
-            u'groups': [
-                {u'name': u'Group A'},
-                {u'name': u'Group B'},
-            ],
-        }
-        patcher = mock.patch('uuid.uuid1', return_value='test_id')
-        self.patched_uuid = patcher.start()
-        self.addCleanup(patcher.stop)
+        super(GroupConfigurationsBaseTestCase, self).setUp()
+        mock_uuid = MockedUuid()
+        patcher_uuid1 = mock.patch('uuid.uuid1', return_value=mock_uuid)
+        patcher_uuid4 = mock.patch('uuid.uuid4', return_value=mock_uuid)
+        self.patched_uuid1 = patcher_uuid1.start()
+        self.patched_uuid4 = patcher_uuid4.start()
+        self.addCleanup(patcher_uuid1.stop)
+        self.addCleanup(patcher_uuid4.stop)
 
-    def test_index_page(self):
+    def test_required_fields_are_absent(self):
         """
-        Check that the group configuration index page responds correctly.
-        """
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('New Group Configuration', response.content)
-
-    def test_bad_http_accept_header(self):
-        """
-        Test if not allowed header present in request.
-        """
-        response = self.client.get(
-            self.url,
-            HTTP_ACCEPT="text/plain",
-        )
-        self.assertEqual(response.status_code, 406)
-
-    def test_list_page_ajax(self):
-        """
-        Check that the group configuration lists all configurations.
-        """
-        group_configurations = [
-            {
-                u'description': u'Test description',
-                u'id': 1,
-                u'name': u'Test name',
-                u'version': 1,
-                u'groups': [
-                    {u'id': 0, u'name': u'Group A', u'version': 1},
-                    {u'id': 1, u'name': u'Group B', u'version': 1}
-                ]
-            },
-            {
-                u'description': u'Test description 2',
-                u'id': 2,
-                u'name': u'Test name 2',
-                u'version': 1,
-                u'groups': [
-                    {u'id': 0, u'name': u'Group A', u'version': 1},
-                    {u'id': 1, u'name': u'Group B', u'version': 1}
-                ]
-            }
-        ]
-        self.course.user_partitions = [
-            UserPartition.from_json(configuration)
-            for configuration in group_configurations
-        ]
-        self.save_course()
-        response = self.client.get(
-            self.url,
-            content_type="application/json",
-            HTTP_ACCEPT="application/json",
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
-        )
-        group_configurations = json.loads(response.content)
-        expected_group_configurations = [
-            {
-                u'description': u'Test description',
-                u'id': 1,
-                u'name': u'Test name',
-                u'groups': [
-                    {u'id': 0, u'name': u'Group A'},
-                    {u'id': 1, u'name': u'Group B'}
-                ]
-            },
-            {
-                u'description': u'Test description 2',
-                u'id': 2,
-                u'name': u'Test name 2',
-                u'groups': [
-                    {u'id': 0, u'name': u'Group A'},
-                    {u'id': 1, u'name': u'Group B'}
-                ]
-            },
-        ]
-        self.assertItemsEqual(group_configurations, expected_group_configurations)
-
-    def test_group_success(self):
-        """
-        Test that you can create a group configuration.
-        """
-        expected_group_configuration = {
-            u'id': u'test_id',
-            u'description': u'Test description',
-            u'name': u'Test name',
-            u'version': 1,
-            u'groups': [
-                {u'name': u'Group A', u'version': 1},
-                {u'name': u'Group B', u'version': 1}
-            ]
-        }
-        response = self.client.post(
-            self.url,
-            data=json.dumps(self.group_configuration_json),
-            content_type="application/json",
-            HTTP_ACCEPT="application/json",
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
-        )
-        self.assertEqual(response.status_code, 201)
-        self.assertIn("Location", response)
-        group_configuration = json.loads(response.content)
-        del group_configuration['id']  # do not check for id, it is unique
-        for group in group_configuration.get('groups', []):
-            del group['id']
-        self.assertEqual(expected_group_configuration, group_configuration)
-
-    def test_bad_group(self):
-        """
-        Test if only one group in configuration exist.
-        """
-        # Only one group in group configuration here.
-        bad_group_configuration = {
-            u'description': u'Test description',
-            u'id': 1,
-            u'name': u'Test name',
-            u'version': 1,
-            u'groups': [
-                {u'id': 0, u'name': u'Group A', u'version': 1},
-            ]
-        }
-        response = self.client.post(
-            self.url,
-            data=json.dumps(bad_group_configuration),
-            content_type="application/json",
-            HTTP_ACCEPT="application/json",
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
-        )
-        self.assertEqual(response.status_code, 400)
-        self.assertNotIn("Location", response)
-        content = json.loads(response.content)
-        self.assertIn("error", content)
-
-    def test_bad_json(self):
-        """
-        Test bad json handling.
+        Test required fields are absent.
         """
         bad_jsons = [
-            {u'name': 'Test Name'},
-            {u'description': 'Test description'},
-            {}
+            # must have description of the configuration
+            {
+                u'name': 'Test Name',
+                u'groups': [
+                    {u'name': u'Group A'},
+                    {u'name': u'Group B'},
+                ],
+            },
+            # must have name of the configuration
+            {
+                u'description': 'Test description',
+                u'groups': [
+                    {u'name': u'Group A'},
+                    {u'name': u'Group B'},
+                ],
+            },
+            # must have at least two groups
+            {
+                u'name': u'Test name',
+                u'description': u'Test description',
+                u'groups': [
+                    {u'name': u'Group A'},
+                ],
+            },
+            # an empty json
+            {},
         ]
+
         for bad_json in bad_jsons:
             response = self.client.post(
-                self.url,
+                self._url(),
                 data=json.dumps(bad_json),
                 content_type="application/json",
                 HTTP_ACCEPT="application/json",
@@ -191,7 +106,7 @@ class GroupConfigurationsCreateTestCase(CourseTestCase):
         invalid_json = "{u'name': 'Test Name', []}"
 
         response = self.client.post(
-            self.url,
+            self._url(),
             data=invalid_json,
             content_type="application/json",
             HTTP_ACCEPT="application/json",
@@ -203,200 +118,208 @@ class GroupConfigurationsCreateTestCase(CourseTestCase):
         self.assertIn("error", content)
 
 
-class GroupConfigurationsDetailTestCase(CourseTestCase):
+class GroupConfigurationsListHandlerTestCase(GroupConfigurationsBaseTestCase, CourseTestCase):
     """
-    Test cases for detail handler.
+    Test cases for group_configurations_list_handler.
+    """
+    def setUp(self):
+        """
+        Set up a url and group configuration content for tests.
+        """
+        super(GroupConfigurationsListHandlerTestCase, self).setUp()
+
+    def _url(self):
+        return reverse_course_url('group_configurations_list_handler', self.course.id)
+
+    def test_can_retrieve_html(self):
+        """
+        Check that the group configuration index page responds correctly.
+        """
+        response = self.client.get(self._url())
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('New Group Configuration', response.content)
+
+    def test_unsupported_http_accept_header(self):
+        """
+        Test if not allowed header present in request.
+        """
+        response = self.client.get(
+            self._url(),
+            HTTP_ACCEPT="text/plain",
+        )
+        self.assertEqual(response.status_code, 406)
+
+    def test_can_retrieve_collection_of_configurations(self):
+        """
+        Check that the group configuration lists all configurations.
+        """
+        self.course.user_partitions = [
+            UserPartition(1, 'Test name', 'Test description', [Group(0, 'Group A'), Group(1, 'Group B')]),
+            UserPartition(2, 'Test name 2', 'Test description 2', [Group(0, 'Group 0'), Group(1, 'Group 1'), Group(2, 'Group 2')]),
+        ]
+        self.save_course()
+
+        expected = [
+            {
+                u'id': 1,
+                u'name': u'Test name',
+                u'description': u'Test description',
+                u'groups': [
+                    {u'id': 0, u'name': u'Group A'},
+                    {u'id': 1, u'name': u'Group B'},
+                ],
+            },
+            {
+                u'id': 2,
+                u'name': u'Test name 2',
+                u'description': u'Test description 2',
+                u'groups': [
+                    {u'id': 0, u'name': u'Group 0'},
+                    {u'id': 1, u'name': u'Group 1'},
+                    {u'id': 2, u'name': u'Group 2'},
+                ],
+            },
+        ]
+
+        response = self.client.get(
+            self._url(),
+            content_type="application/json",
+            HTTP_ACCEPT="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+        content = json.loads(response.content)
+        self.assertItemsEqual(content, expected)
+
+    def test_can_create_group_configuration(self):
+        """
+        Test that you can create a group configuration.
+        """
+        expected = {
+            u'id': MockedUuid.ID,
+            u'description': u'Test description',
+            u'name': u'Test name',
+            u'groups': [
+                {u'id': u'10000000', u'name': u'Group A'},
+                {u'id': u'20000000', u'name': u'Group B'},
+            ],
+        }
+        response = self.client.post(
+            self._url(),
+            data=json.dumps(GROUP_CONFIGURATION_JSON),
+            content_type="application/json",
+            HTTP_ACCEPT="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("Location", response)
+        content = json.loads(response.content)
+        self.assertEqual(content, expected)
+
+
+class GroupConfigurationsDetailHandlerTestCase(GroupConfigurationsBaseTestCase, CourseTestCase):
+    """
+    Test cases for group_configurations_detail_handler.
     """
 
     def setUp(self):
         """
         Set up a url and group configuration content for tests.
         """
-        super(GroupConfigurationsDetailTestCase, self).setUp()
-
-        self.group_configuration_json = {
-            u'description': u'Test description',
-            u'name': u'Test name',
-            u'groups': [
-                {u'name': u'Group A'},
-                {u'name': u'Group B'},
-            ],
-        }
-
-        self.test_id = u'0e11749e-0682-11e4-9247-080027880ca6'
-        self.group_configuration = {
-            u'description': u'Test description',
-            u'id': self.test_id,
-            u'name': u'Test name',
-            u'version': 1,
-            u'groups': [
-                {u'id': 0, u'name': u'Group A', u'version': 1},
-                {u'id': 1, u'name': u'Group B', u'version': 1}
-            ]
-        }
-        self._set_user_partition(self.group_configuration)
-
-    def _set_user_partition(self, group_configuration):
-        self.course.user_partitions = [UserPartition.from_json(group_configuration)]
+        super(GroupConfigurationsDetailHandlerTestCase, self).setUp()
+        self.course.user_partitions = [
+            UserPartition(MockedUuid.ID, 'Test name', 'Test description', [Group(0, 'Group A'), Group(1, 'Group B'), Group(2, 'Group C')]),
+        ]
         self.save_course()
 
-    def test_group_configuration_new(self):
+    def _url(self, cid=MockedUuid.ID):
+        return reverse_course_url(
+            'group_configurations_detail_handler',
+            self.course.id,
+            kwargs={'group_configuration_id': cid},
+        )
+
+    def test_can_create_new_group_configuration_if_it_is_not_exist(self):
         """
-        PUT group configuration when no configurations exist in course.
+        PUT new group configuration when no configurations exist in the course.
         """
         # Make no partitions in course.
         self.course.user_partitions = []
         self.save_course()
 
-        edit_group_configuration = {
-            u'description': u'Edit Test description',
-            u'id': self.test_id,
-            u'name': u'Edit Test name',
+        expected = {
+            u'id': MockedUuid.ID,
+            u'name': u'Test name',
+            u'description': u'Test description',
             u'groups': [
-                {u'name': u'Group A'},
-                {u'name': u'Group B'}
-            ]
+                {u'id': u'10000000', u'name': u'Group A'},
+                {u'id': u'20000000', u'name': u'Group B'},
+            ],
         }
-        put_url = reverse_course_url(
-            'group_configurations_detail_handler',
-            self.course.id,
-            kwargs={'group_configuration_id': self.test_id}
-        )
+
         response = self.client.put(
-            put_url,
-            data=json.dumps(edit_group_configuration),
+            self._url(),
+            data=json.dumps(GROUP_CONFIGURATION_JSON),
             content_type="application/json",
             HTTP_ACCEPT="application/json",
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
         content = json.loads(response.content)
-        self.assertEqual(content['id'], self.test_id)
-        self.assertEqual(content['description'], 'Edit Test description')
-        self.assertEqual(content['name'], 'Edit Test name')
+        self.assertEqual(content, expected)
 
-    def test_group_configuration_edit(self):
+    def test_can_edit_group_configuration(self):
         """
         Edit group configuration and check its id and modified fields.
         """
-        edit_group_configuration = {
-            u'description': u'Edit Test description',
-            u'id': self.test_id,
-            u'name': u'Edit Test name',
-            u'groups': [
-                {u'name': u'Group A'},
-                {u'name': u'Group B'}
-            ]
-        }
-        put_url = reverse_course_url(
-            'group_configurations_detail_handler',
-            self.course.id,
-            kwargs={'group_configuration_id': self.test_id}
-        )
-        response = self.client.put(
-            put_url,
-            data=json.dumps(edit_group_configuration),
-            content_type="application/json",
-            HTTP_ACCEPT="application/json",
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
-        )
-        content = json.loads(response.content)
-        self.assertEqual(content['id'], self.test_id)
-        self.assertEqual(content['description'], 'Edit Test description')
-        self.assertEqual(content['name'], 'Edit Test name')
-
-    def test_group_configuration_not_exists(self):
-        """
-        Group configuration is not present in course.
-        """
-        bad_id = u'bad-id'
-        url = reverse_course_url(
-            'group_configurations_detail_handler',
-            self.course.id,
-            kwargs={'group_configuration_id': bad_id}
-        )
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 404)
-
-    def test_group_configuration_exists(self):
-        """
-        Group configuration with appropriate id is present in course.
-        """
-        url = reverse_course_url(
-            'group_configurations_detail_handler',
-            self.course.id,
-            kwargs={'group_configuration_id': self.test_id}
-        )
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        group_configuration = json.loads(response.content)
-        expected_group_configuration = {
-            u'description': u'Test description',
-            u'id': self.test_id,
-            u'name': u'Test name',
+        group_configuration_json = {
+            u'id': MockedUuid.ID,
+            u'name': u'New Test name',
+            u'description': u'New Test description',
             u'groups': [
                 {u'id': 0, u'name': u'Group A'},
-                {u'id': 1, u'name': u'Group B'}
-            ]
+                {u'id': 2, u'name': u'Group C'},
+            ],
         }
-        self.assertEqual(group_configuration, expected_group_configuration)
-
-    def test_group_configuration_json_id_not_exists(self):
-        """
-        Attempt to edit nonexisting group configuration.
-        """
-        # Nonexisting id in cousre here in json.
-        edit_group_configuration = {
-            u'description': u'Edit Test description',
-            u'id': u'non-existing-id',
-            u'name': u'Edit Test name',
+        expected = {
+            u'id': MockedUuid.ID,
+            u'name': u'New Test name',
+            u'description': u'New Test description',
             u'groups': [
-                {u'name': u'Group A'},
-                {u'name': u'Group B'}
-            ]
+                {u'id': 0, u'name': u'Group A'},
+                {u'id': 2, u'name': u'Group C'},
+            ],
         }
-        # Group configuration that present in course.
-        put_url = reverse_course_url(
-            'group_configurations_detail_handler',
-            self.course.id,
-            kwargs={'group_configuration_id': self.test_id}
-        )
         response = self.client.put(
-            put_url,
-            data=json.dumps(edit_group_configuration),
+            self._url(),
+            data=json.dumps(group_configuration_json),
             content_type="application/json",
             HTTP_ACCEPT="application/json",
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
         content = json.loads(response.content)
-        self.assertEqual(content['id'], self.test_id)
+        self.assertEqual(content, expected)
 
-    def test_update_bad_group(self):
+    def test_can_get_group_configuration(self):
         """
-        Only one group in configuration exist on update.
+        Group configuration with appropriate id is present in the course.
         """
-        # Only one group in group configuration here.
-        bad_group_configuration = {
-            u'description': u'Test description',
-            u'id': self.test_id,
+        expected = {
+            u'id': MockedUuid.ID,
             u'name': u'Test name',
-            u'version': 1,
+            u'description': u'Test description',
             u'groups': [
-                {u'id': 0, u'name': u'Group A', u'version': 1},
-            ]
+                {u'id': 0, u'name': u'Group A'},
+                {u'id': 1, u'name': u'Group B'},
+                {u'id': 2, u'name': u'Group C'},
+            ],
         }
-        # Group configuration id that present in course.
-        url = reverse_course_url(
-            'group_configurations_detail_handler',
-            self.course.id,
-            kwargs={'group_configuration_id': self.test_id}
-        )
-        response = self.client.post(
-            url,
-            data=json.dumps(bad_group_configuration),
-            content_type="application/json",
-            HTTP_ACCEPT="application/json",
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
-        )
-        self.assertEqual(response.status_code, 400)
+        response = self.client.get(self._url())
+        self.assertEqual(response.status_code, 200)
         content = json.loads(response.content)
-        self.assertIn("error", content)
+        self.assertEqual(content, expected)
+
+    def test_get_404_if_group_configuration_does_not_exist(self):
+        """
+        Group configuration is not present in the course.
+        """
+        response = self.client.get(self._url(cid=u'bad-id'))
+        self.assertEqual(response.status_code, 404)

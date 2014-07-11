@@ -5,6 +5,7 @@ import json
 import random
 import string  # pylint: disable=W0402
 import uuid
+from copy import deepcopy
 
 from django.utils.translation import ugettext as _
 import django.utils
@@ -877,7 +878,6 @@ class GroupConfiguration(object):
         self.course = course
         self.assign_id(configuration_id)
         self.assign_group_ids()
-        self.extend()
         self.validate()
 
     def to_json(self):
@@ -898,16 +898,6 @@ class GroupConfiguration(object):
             raise GroupConfigurationsValidationError(_("invalid JSON"))
 
         return configuration
-
-    def extend(self):
-        """
-        Extend given group configuration by the version, etc.
-        """
-        if not self.configuration.get('version'):
-            self.configuration['version'] = UserPartition.VERSION
-
-        for group in self.configuration.get('groups', []):
-            group['version'] = Group.VERSION
 
     def validate(self):
         """
@@ -932,8 +922,10 @@ class GroupConfiguration(object):
         """
         # Assign ids to every group in configuration.
         for group in self.configuration.get('groups', []):
-            if not group.get("id"):
-                group["id"] = (uuid.uuid1().int >> 65)
+            try:
+                int(group.get("id"))
+            except:
+                group["id"] = str(uuid.uuid4().int)[:8]
 
     def get_used_ids(self):
         """
@@ -945,7 +937,14 @@ class GroupConfiguration(object):
         """
         Get user partition for saving in course.
         """
-        return UserPartition.from_json(self.configuration)
+        configuration = deepcopy(self.configuration)
+        if not configuration.get('version'):
+            configuration['version'] = UserPartition.VERSION
+
+        for group in configuration.get('groups', []):
+            group['version'] = Group.VERSION
+
+        return UserPartition.from_json(configuration)
 
 
 @require_http_methods(("GET", "POST"))
