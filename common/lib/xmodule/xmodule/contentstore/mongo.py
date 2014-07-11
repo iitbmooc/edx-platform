@@ -176,20 +176,19 @@ class MongoContentStore(ContentStore):
         Finds and removes all redundant files (Mac OS metadata files with filename ".DS_Store"
         or filename starts with "._") for all courses
         """
-        query = SON([
-            ('_id.tag', XASSET_LOCATION_TAG),
-            ('_id.category', 'asset'),
-        ])
-        total_assets = self.fs_files.find(query).count()
+        for prefix in ['_id', 'content_son']:
+            query = SON([
+                ('{}.tag'.format(prefix), XASSET_LOCATION_TAG),
+                ('{}.category'.format(prefix), 'asset'),
+                ('{}.name'.format(prefix), {'$regex': ASSET_IGNORE_REGEX}),
+            ])
+            items = self.fs_files.find(query)
+            assets_to_delete = items.count()
+            for asset in items:
+                self.fs.delete(asset['_id'])
 
-        query['_id.name'] = {'$regex': ASSET_IGNORE_REGEX}
-        items = self.fs_files.find(query)
-        assets_to_delete = items.count()
-        for asset in items:
-            self.fs.delete(asset['_id'])
-
-        self.fs_files.remove(query)
-        return total_assets, assets_to_delete
+            self.fs_files.remove(query)
+            return assets_to_delete
 
     def _get_all_content_for_course(self, course_key, get_thumbnails=False, start=0, maxresults=-1, sort=None):
         '''
