@@ -32,7 +32,7 @@ define([
                 expect(this.model.get('showGroups')).toBeFalsy();
             });
 
-            it('should have a GroupSet with two groups by default', function() {
+            it('should have a collection with 2 groups by default', function() {
                 var groups = this.model.get('groups');
 
                 expect(groups).toBeInstanceOf(GroupCollection);
@@ -216,7 +216,9 @@ define([
         });
 
         it('is not empty if a group is not empty', function() {
-            this.collection.add([{ name: '' }, { name: 'full' }, { name: '' } ]);
+            this.collection.add([
+                { name: '' }, { name: 'full' }, { name: '' }
+            ]);
 
             expect(this.collection.isEmpty()).toBeFalsy();
         });

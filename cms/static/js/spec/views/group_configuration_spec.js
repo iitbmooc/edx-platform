@@ -64,14 +64,14 @@ define([
                     return this.actual.get(key) === value;
                 }.bind(this));
             },
-            toHaveCorrectDefaultNames: function (values) {
+            toHaveDefaultNames: function (values) {
                 var actualValues = $.map(this.actual, function (item) {
                     return $(item).val();
                 });
 
                 return _.isEqual(actualValues, values);
             },
-            toHaveCorrectPlaceholders: function (values) {
+            toHavePlaceholders: function (values) {
                 var actualValues = $.map(this.actual, function (item) {
                     return $(item).attr('placeholder');
                 });
@@ -147,8 +147,9 @@ define([
 
         beforeEach(function() {
             view_helpers.installViewTemplates();
-            view_helpers.installTemplate('group-configuration-edit');
-            view_helpers.installTemplate('group-edit');
+            view_helpers.installTemplates([
+                'group-configuration-edit', 'group-edit'
+            ]);
 
             this.model = new GroupConfigurationModel({
                 name: 'Configuration',
@@ -322,40 +323,32 @@ define([
             this.view.$('.action-add-group').click(); // Add Group D
             this.view.$('.action-add-group').click(); // Add Group E
 
-            expect(this.view.$(SELECTORS.inputGroupName))
-                .toHaveCorrectDefaultNames([
-                    'Group A', 'Group B', 'Group C', 'Group D', 'Group E'
-                ]);
-            expect(this.view.$(SELECTORS.inputGroupName))
-                .toHaveCorrectPlaceholders([
-                    'Group A', 'Group B', 'Group C', 'Group D', 'Group E'
-                ]);
+            expect(this.view.$(SELECTORS.inputGroupName)).toHaveDefaultNames([
+                'Group A', 'Group B', 'Group C', 'Group D', 'Group E'
+            ]);
+            expect(this.view.$(SELECTORS.inputGroupName)).toHavePlaceholders([
+                'Group A', 'Group B', 'Group C', 'Group D', 'Group E'
+            ]);
 
             // Remove Group B
             this.view.$('.group-1 .action-close').click();
 
-            expect(this.view.$(SELECTORS.inputGroupName))
-                .toHaveCorrectDefaultNames([
-                    'Group A', 'Group C', 'Group D', 'Group E'
-                ]);
-            expect(this.view.$(SELECTORS.inputGroupName))
-                .toHaveCorrectPlaceholders([
-                    'Group A', 'Group B', 'Group C', 'Group D'
-                ]);
+            expect(this.view.$(SELECTORS.inputGroupName)).toHaveDefaultNames([
+                'Group A', 'Group C', 'Group D', 'Group E'
+            ]);
+            expect(this.view.$(SELECTORS.inputGroupName)).toHavePlaceholders([
+                'Group A', 'Group B', 'Group C', 'Group D'
+            ]);
 
             this.view.$('.action-add-group').click(); // Add Group F
             this.view.$('.action-add-group').click(); // Add Group G
 
-            expect(this.view.$(SELECTORS.inputGroupName))
-                .toHaveCorrectDefaultNames([
-                    'Group A', 'Group C', 'Group D', 'Group E', 'Group F',
-                    'Group G'
-                ]);
-            expect(this.view.$(SELECTORS.inputGroupName))
-                .toHaveCorrectPlaceholders([
-                    'Group A', 'Group B', 'Group C', 'Group D', 'Group E',
-                    'Group F'
-                ]);
+            expect(this.view.$(SELECTORS.inputGroupName)).toHaveDefaultNames([
+                'Group A', 'Group C', 'Group D', 'Group E', 'Group F', 'Group G'
+            ]);
+            expect(this.view.$(SELECTORS.inputGroupName)).toHavePlaceholders([
+                'Group A', 'Group B', 'Group C', 'Group D', 'Group E', 'Group F'
+            ]);
         });
     });
 
@@ -394,8 +387,9 @@ define([
 
     describe('GroupConfigurationItem', function() {
         beforeEach(function() {
-            view_helpers.installTemplate('group-configuration-edit', true);
-            view_helpers.installTemplate('group-configuration-details');
+            view_helpers.installTemplates([
+                'group-configuration-edit', 'group-configuration-details'
+            ], true);
             this.model = new GroupConfigurationModel({ id: 0 });
             this.collection = new GroupConfigurationCollection([ this.model ]);
             this.view = new GroupConfigurationItem({
