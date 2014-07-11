@@ -1,3 +1,6 @@
+"""
+Group Configuration Tests.
+"""
 import json
 import mock
 from contentstore.utils import reverse_course_url
@@ -16,19 +19,28 @@ GROUP_CONFIGURATION_JSON = {
 
 
 class MockedUuid(object):
+    """
+    Mock UUID class.
+    """
     ID = u'0e11749e-0682-11e4-9247-080027880ca6'
 
     def __init__(self):
-        self.generator = self.nextNumber()
+        self.generator = self.next_number()
 
     def __str__(self):
         return self.ID
 
     @property
     def int(self):
+        """
+        Return next number.
+        """
         return self.generator.next()
 
-    def nextNumber(self):
+    def next_number(self):
+        """
+        Generate next number.
+        """
         num = long('{0:0<39d}'.format(1))
         while True:
             yield num
@@ -39,7 +51,7 @@ class GroupConfigurationsBaseTestCase(object):
     """
     Base test cases for the group configurations.
     """
-    def setUp(self):
+    def setUp(self):  # pylint: disable=E1101
         """
         Set up a url and group configuration content for tests.
         """
@@ -118,7 +130,7 @@ class GroupConfigurationsBaseTestCase(object):
         self.assertIn("error", content)
 
 
-class GroupConfigurationsListHandlerTestCase(GroupConfigurationsBaseTestCase, CourseTestCase):
+class GroupConfigurationsListHandlerTestCase(GroupConfigurationsBaseTestCase, CourseTestCase):  # pylint: disable=E1101
     """
     Test cases for group_configurations_list_handler.
     """
@@ -129,6 +141,9 @@ class GroupConfigurationsListHandlerTestCase(GroupConfigurationsBaseTestCase, Co
         super(GroupConfigurationsListHandlerTestCase, self).setUp()
 
     def _url(self):
+        """
+        Return url for the handler.
+        """
         return reverse_course_url('group_configurations_list_handler', self.course.id)
 
     def test_can_retrieve_html(self):
@@ -216,7 +231,7 @@ class GroupConfigurationsListHandlerTestCase(GroupConfigurationsBaseTestCase, Co
         self.assertEqual(content, expected)
 
 
-class GroupConfigurationsDetailHandlerTestCase(GroupConfigurationsBaseTestCase, CourseTestCase):
+class GroupConfigurationsDetailHandlerTestCase(GroupConfigurationsBaseTestCase, CourseTestCase):  # pylint: disable=E1101
     """
     Test cases for group_configurations_detail_handler.
     """
@@ -232,6 +247,9 @@ class GroupConfigurationsDetailHandlerTestCase(GroupConfigurationsBaseTestCase, 
         self.save_course()
 
     def _url(self, cid=MockedUuid.ID):
+        """
+        Return url for the handler.
+        """
         return reverse_course_url(
             'group_configurations_detail_handler',
             self.course.id,
@@ -270,15 +288,6 @@ class GroupConfigurationsDetailHandlerTestCase(GroupConfigurationsBaseTestCase, 
         """
         Edit group configuration and check its id and modified fields.
         """
-        group_configuration_json = {
-            u'id': MockedUuid.ID,
-            u'name': u'New Test name',
-            u'description': u'New Test description',
-            u'groups': [
-                {u'id': 0, u'name': u'Group A'},
-                {u'id': 2, u'name': u'Group C'},
-            ],
-        }
         expected = {
             u'id': MockedUuid.ID,
             u'name': u'New Test name',
@@ -290,7 +299,7 @@ class GroupConfigurationsDetailHandlerTestCase(GroupConfigurationsBaseTestCase, 
         }
         response = self.client.put(
             self._url(),
-            data=json.dumps(group_configuration_json),
+            data=json.dumps(expected),
             content_type="application/json",
             HTTP_ACCEPT="application/json",
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",

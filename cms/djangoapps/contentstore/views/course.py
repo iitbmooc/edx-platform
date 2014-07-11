@@ -881,10 +881,16 @@ class GroupConfiguration(object):
         self.validate()
 
     def to_json(self):
+        """
+        Return json-like configuration.
+        """
         return self.configuration
 
     @property
     def id(self):
+        """
+        Return group configuration id.
+        """
         return self.configuration.get('id')
 
     @staticmethod
@@ -922,10 +928,8 @@ class GroupConfiguration(object):
         """
         # Assign ids to every group in configuration.
         for group in self.configuration.get('groups', []):
-            try:
-                int(group.get("id"))
-            except:
-                group["id"] = str(uuid.uuid4().int)[:8]
+            if group.get("id", -1) < 0:
+                group["id"] = str(uuid.uuid4().int)[:8]  # pylint: disable=E1101
 
     def get_used_ids(self):
         """
