@@ -90,7 +90,7 @@ class SplitWMongoCourseBoostrapper(unittest.TestCase):
             mongo = self.old_mongo
         else:
             mongo = self.draft_mongo
-        mongo.create_and_save_xmodule(location, self.userid, definition_data=data, metadata=metadata, runtime=self.runtime)
+        mongo.create_item(self.userid, location, definition_data=data, metadata=metadata, runtime=self.runtime)
         if isinstance(data, basestring):
             fields = {'data': data}
         else:
@@ -115,7 +115,9 @@ class SplitWMongoCourseBoostrapper(unittest.TestCase):
         else:
             course_or_parent_locator = self.split_course_key
         if split:
-            self.split_mongo.create_item(course_or_parent_locator, category, self.userid, block_id=name, fields=fields)
+            self.split_mongo.create_item(
+                self.userid, location, parent_location=course_or_parent_locator, block_id=name, fields=fields
+            )
 
     def _create_course(self, split=True):
         """

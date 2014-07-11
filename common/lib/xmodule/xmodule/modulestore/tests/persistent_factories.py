@@ -72,7 +72,7 @@ class ItemFactory(SplitFactory):
         """
         modulestore = kwargs.pop('modulestore')
         return modulestore.create_item(
-            parent_location, category, user_id, definition_locator=definition_locator,
+            user_id, category=category, parent_location=parent_location, defintion_locator=definition_locator,
             block_id=block_id, force=force, continue_version=continue_version, fields=kwargs
         )
 

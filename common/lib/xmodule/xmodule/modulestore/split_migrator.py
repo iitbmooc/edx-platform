@@ -76,7 +76,7 @@ class SplitMigrator(object):
                 # it doesn't need the parent as the first arg. That is, it translates and populates
                 # the 'children' field as it goes.
                 _new_module = self.split_modulestore.create_item(
-                    course_version_locator, module.category, user.id,
+                    user.id, new_locator, parent_location=course_version_locator,
                     block_id=new_locator.block_id,
                     fields=self._get_json_fields_translate_references(module, course_key, True),
                     continue_version=True
@@ -122,7 +122,7 @@ class SplitMigrator(object):
                 # only a draft version (aka, 'private'). parent needs updated too.
                 # create a new course version just in case the current head is also the prod head
                 _new_module = self.split_modulestore.create_item(
-                    new_draft_course_loc, module.category, user.id,
+                    user.id, new_locator, parent_location=new_draft_course_loc,
                     block_id=new_locator.block_id,
                     fields=self._get_json_fields_translate_references(module, course_key, True)
                 )

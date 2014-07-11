@@ -876,7 +876,7 @@ class MongoModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
                 ]))
 
         location = course_id.make_usage_key('course', course_id.run)
-        course = self.create_and_save_xmodule(location, user_id, fields=fields, **kwargs)
+        course = self.create_item(user_id, location, fields=fields, **kwargs)
 
         # clone a default 'about' overview module as well
         about_location = location.replace(
@@ -884,16 +884,16 @@ class MongoModuleStore(ModuleStoreDraftAndPublished, ModuleStoreWriteBase):
             name='overview'
         )
         overview_template = AboutDescriptor.get_template('overview.yaml')
-        self.create_and_save_xmodule(
-            about_location,
+        self.create_item(
             user_id,
+            about_location,
             definition_data=overview_template.get('data'),
             runtime=course.system
         )
 
         return course
 
-    def create_xmodule(self, location, definition_data=None, metadata=None, runtime=None, fields={}):
+    def create_xmodule(self, location, definition_data=None, metadata=None, runtime=None, fields={}, **kwargs):
         """
         Create the new xmodule but don't save it. Returns the new module.
 
