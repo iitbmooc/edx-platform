@@ -184,7 +184,8 @@
 
         .subsection,
         .courseware-unit {
-          margin: ($baseline/4) 0 0 ($baseline*.75);
+          margin-top: ($baseline/4);
+          margin-left: ($baseline*.75);
         }
 
         .courseware-unit .section-item {
@@ -193,16 +194,13 @@
 
         .section-item {
           @include transition(background $tmg-avg ease-in-out 0);
-          @include box-sizing(border-box);
+          @extend %cont-truncated;
           @extend %t-copy-sub2;
           width: 100%;
           display: inline-block;
           vertical-align: top;
-          overflow: hidden;
           padding: 6px 8px 8px 16px;
           background: $gray-l5;
-          white-space: nowrap;
-          text-overflow: ellipsis;
           color: $gray;
 
           &:hover {

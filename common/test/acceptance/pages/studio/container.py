@@ -107,7 +107,7 @@ class ContainerPage(PageObject):
 
         Switches the browser to the newly opened LMS window.
         """
-        self.q(css='.view-button').first.click()
+        self.q(css='.button-view').first.click()
         self._switch_to_lms()
 
     def preview(self):
@@ -116,7 +116,7 @@ class ContainerPage(PageObject):
 
         Switches the browser to the newly opened LMS window.
         """
-        self.q(css='.preview-button').first.click()
+        self.q(css='.button-preview').first.click()
         self._switch_to_lms()
 
     def _switch_to_lms(self):
@@ -287,7 +287,7 @@ def _click_edit(page_object, bounded_selector=lambda(x): x):
     """
     Click on the first edit button found and wait for the Studio editor to be present.
     """
-    page_object.q(css=bounded_selector('.edit-button')).first.click()
+    page_object.q(css=bounded_selector('.button-edit')).first.click()
     EmptyPromise(
         lambda: page_object.q(css='.xblock-studio_view').present,
         'Wait for the Studio editor to be present'
