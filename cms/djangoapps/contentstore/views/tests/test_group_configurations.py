@@ -185,7 +185,7 @@ class GroupConfigurationsListHandlerTestCase(GroupConfigurationsBaseTestCase, Co
             self._url(),
             content_type="application/json",
             HTTP_ACCEPT="application/json",
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
         content = json.loads(response.content)
         self.assertItemsEqual(content, expected)
@@ -208,7 +208,7 @@ class GroupConfigurationsListHandlerTestCase(GroupConfigurationsBaseTestCase, Co
             data=json.dumps(GROUP_CONFIGURATION_JSON),
             content_type="application/json",
             HTTP_ACCEPT="application/json",
-            HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
         self.assertEqual(response.status_code, 201)
         self.assertIn("Location", response)

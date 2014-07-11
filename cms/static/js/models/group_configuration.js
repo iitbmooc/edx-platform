@@ -11,7 +11,7 @@ function(Backbone, _, str, gettext, GroupModel, GroupCollection) {
                 name: '',
                 description: '',
                 groups: new GroupCollection([
-                    { name: 'Group A' }, { name: 'Group B' }
+                    { name: 'Group A', order: 0 }, { name: 'Group B', order: 1 }
                 ]),
                 showGroups: false,
                 editing: false

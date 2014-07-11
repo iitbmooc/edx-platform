@@ -343,6 +343,7 @@ class GroupConfigurationsTest(UniqueCourseTest):
         config = self.page.group_configurations()[0]
         config.name = "New Group Configuration Name"
         config.description = "New Description of the group configuration."
+        config.groups[1].name = "New Group Name"
         # Add new group
         config.add_group()  # Group C
 
@@ -354,7 +355,7 @@ class GroupConfigurationsTest(UniqueCourseTest):
             config,
             name="New Group Configuration Name",
             description="New Description of the group configuration.",
-            groups=["Group A", "Group B", "Group C"]
+            groups=["Group A", "New Group Name", "Group C"]
         )
 
         # Edit the group configuration
@@ -366,8 +367,10 @@ class GroupConfigurationsTest(UniqueCourseTest):
         self.assertEqual(config.get_text('.action-primary'), "SAVE")
         # Add new group
         config.add_group()  # Group D
-        # Remove Group B
+        # Remove group with name "New Group Name"
         config.groups[1].remove()
+        # Rename Group A
+        config.groups[0].name = "First Group"
         # Save the configuration
         config.save()
 
@@ -375,7 +378,7 @@ class GroupConfigurationsTest(UniqueCourseTest):
             config,
             name="Second Group Configuration Name",
             description="Second Description of the group configuration.",
-            groups=["Group A", "Group C", "Group D"]
+            groups=["First Group", "Group C", "Group D"]
         )
 
     def test_can_cancel_creation_of_group_configuration(self):
