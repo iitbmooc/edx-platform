@@ -5,9 +5,10 @@
 define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views/utils/view_utils",
         "js/views/container", "js/views/xblock", "js/views/components/add_xblock", "js/views/modals/edit_xblock",
         "js/models/xblock_info", "js/views/xblock_string_field_editor", "js/views/pages/container_subviews",
-        "js/views/unit_outline"],
+        "js/views/unit_outline", "js/views/utils/xblock_utils"],
     function ($, _, gettext, BasePage, ViewUtils, ContainerView, XBlockView, AddXBlockComponent,
-              EditXBlockModal, XBlockInfo, XBlockStringFieldEditor, ContainerSubviews, UnitOutlineView) {
+              EditXBlockModal, XBlockInfo, XBlockStringFieldEditor, ContainerSubviews, UnitOutlineView,
+              XBlockUtils) {
         var XBlockContainerPage = BasePage.extend({
             // takes XBlockInfo as a model
 
@@ -20,7 +21,7 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                     model: this.model
                 });
                 this.nameEditor.render();
-                if (this.shouldEditName()) {
+                if (this.options.action === 'new') {
                     this.nameEditor.$('.xblock-field-value').click();
                 }
                 this.model.on('sync', this.onSync, this);
@@ -59,15 +60,10 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                 }
             },
 
-            onSync: function(event) {
-                if (_.indexOf(event.changedAttributes(), 'display_name') >= 0) {
+            onSync: function(model) {
+                if (ViewUtils.hasChangedAttributes(model, ['display_name'])) {
                     this.render();
                 }
-            },
-
-            shouldEditName: function() {
-                // TODO: is there a better way to determine that the name needs changing?
-                return this.model.get('display_name') === 'Unit';
             },
 
             render: function(options) {
@@ -207,20 +203,13 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
             },
 
             deleteComponent: function(xblockElement) {
-                var self = this;
-                ViewUtils.confirmThenRunOperation(gettext('Delete this component?'),
-                    gettext('Deleting this component is permanent and cannot be undone.'),
-                    gettext('Yes, delete this component'),
-                    function() {
-                        ViewUtils.runOperationShowingMessage(gettext('Deleting&hellip;'),
-                            function() {
-                                return $.ajax({
-                                    type: 'DELETE',
-                                    url: self.getURLRoot() + "/" +
-                                        xblockElement.data('locator')
-                                }).success(_.bind(self.onDelete, self, xblockElement));
-                            });
+                var self = this,
+                    xblockInfo = new XBlockInfo({
+                        id: xblockElement.data('locator')
                     });
+                XBlockUtils.deleteXBlock(xblockInfo).done(function() {
+                    self.onDelete(xblockElement);
+                });
             },
 
             onDelete: function(xblockElement) {

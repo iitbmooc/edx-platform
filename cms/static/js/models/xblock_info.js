@@ -93,6 +93,10 @@ define(["backbone", "js/utils/module"], function(Backbone, ModuleUtils) {
 
         createChild: function(response) {
             return new XBlockInfo(response, { parse: true });
+        },
+
+        hasChildren: function() {
+            return this.get('child_info').children.length > 0;
         }
     });
     return XBlockInfo;

@@ -1,3 +1,8 @@
+/**
+ * The UnitOutlineView is used to render the Unit Outline component on the unit page. It shows
+ * the ancestors of the unit along with its direct siblings. It also has a single "New Unit"
+ * button to allow a new sibling unit to be added.
+ */
 define(['js/views/xblock_outline'],
     function(XBlockOutlineView) {
 
@@ -32,16 +37,6 @@ define(['js/views/xblock_outline'],
                     }
                 }
                 return ancestorView;
-            },
-
-            createChildView: function(xblockInfo, parentInfo, parentView) {
-                return new XBlockOutlineView({
-                    model: xblockInfo,
-                    parentInfo: parentInfo,
-                    initialState: this.initialState,
-                    template: this.template,
-                    parentView: parentView || this
-                });
             }
         });
 

@@ -41,15 +41,12 @@ define(["jquery", "underscore", "gettext", "js/views/pages/base_page", "js/views
                     initialState: this.initialState
                 });
                 this.outlineView.render();
-                locatorToShow = this.initialState ? this.initialState.locator_to_show : null;
-                if (locatorToShow) {
-                    this.outlineView.showLocator(locatorToShow);
-                }
+                this.outlineView.setViewState(this.initialState || {});
                 return $.Deferred().resolve().promise();
             },
 
             hasContent: function() {
-                return this.model.get('child_info').children.length > 0;
+                return this.model.hasChildren();
             },
 
             toggleExpandCollapse: function(event) {

@@ -17,9 +17,8 @@ define(["jquery", "underscore", "gettext", "js/views/baseview", "js/views/utils/
                 this.model.on('sync', this.onSync, this);
             },
 
-            onSync: function(e) {
-                if (e.changedAttributes() &&
-                    (('has_changes' in e.changedAttributes()) || ('published' in e.changedAttributes()))) {
+            onSync: function(model) {
+                if (ViewUtils.hasChangedAttributes(model, ['has_changes', 'published'])) {
                    this.render();
                 }
             },
@@ -72,10 +71,8 @@ define(["jquery", "underscore", "gettext", "js/views/baseview", "js/views/utils/
                 this.renderPage = this.options.renderPage;
             },
 
-            onSync: function(e) {
-                if (e.changedAttributes() &&
-                    (('has_changes' in e.changedAttributes()) || ('published' in e.changedAttributes()) ||
-                    ('edited_on' in e.changedAttributes()) || ('edited_by' in e.changedAttributes()))) {
+            onSync: function(model) {
+                if (ViewUtils.hasChangedAttributes(model, ['has_changes', 'published', 'edited_on', 'edited_by'])) {
                    this.render();
                 }
             },
@@ -143,9 +140,8 @@ define(["jquery", "underscore", "gettext", "js/views/baseview", "js/views/utils/
                 this.model.on('sync', this.onSync, this);
             },
 
-            onSync: function(e) {
-                if (e.changedAttributes() && (('published' in e.changedAttributes()) ||
-                    ('published_on' in e.changedAttributes()) || ('published_by' in e.changedAttributes()))) {
+            onSync: function(model) {
+                if (ViewUtils.hasChangedAttributes(model, ['published', 'published_on', 'published_by'])) {
                    this.render();
                 }
             },

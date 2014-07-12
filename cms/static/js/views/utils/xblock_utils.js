@@ -51,7 +51,7 @@ define(["jquery", "underscore", "gettext", "js/views/utils/view_utils", "js/util
                         function() {
                             return $.ajax({
                                 type: 'DELETE',
-                                url: url + "?" + $.param({recurse: true, all_versions: false})
+                                url: url
                             }).success(function() {
                                 deletion.resolve();
                             });

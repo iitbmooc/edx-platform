@@ -1,3 +1,19 @@
+/**
+ * The XBlockOutlineView is used to render an xblock and its children based upon the information
+ * provided in the XBlockInfo model. It is a recursive set of views where each XBlock has its own instance.
+ *
+ * The class provides several opportunities to override the default behavior in subclasses:
+ *  - shouldRenderChildren defaults to true meaning that the view should also create child views
+ *  - shouldExpandChildren defaults to true meaning that the view should show itself as expanded
+ *  - refresh is called when a server change has been made and the view needs to be refreshed
+ *
+ * The view can be constructed with an initialState option which is a JSON structure representing
+ * the desired initial state. The parameters are as follows:
+ *  - expanded_locators - the locators that should be shown as expanded in addition to the defaults
+ *  - locator_to_show - the locator for the xblock which is the one being explicitly shown
+ *  - scroll_offset - the scroll offset to use for the locator being shown
+ *  - edit_display_name - true if the shown xblock's display name should be in inline edit mode
+ */
 define(["jquery", "underscore", "gettext", "js/views/baseview", "js/views/utils/view_utils",
         "js/views/utils/xblock_utils", "js/views/xblock_string_field_editor"],
     function($, _, gettext, BaseView, ViewUtils, XBlockViewUtils, XBlockStringFieldEditor) {
@@ -27,17 +43,7 @@ define(["jquery", "underscore", "gettext", "js/views/baseview", "js/views/utils/
                 if (this.shouldRenderChildren() && this.shouldExpandChildren()) {
                     this.renderChildren();
                 }
-                if (this.initialState) {
-                    this.setViewState(this.initialState);
-                    this.initialState = null;
-                }
                 return this;
-            },
-
-            setViewState: function (viewState) {
-                if (this.nameEditor && this.model.id === viewState.edit_display_name) {
-                    this.nameEditor.$('.xblock-field-value').click();
-                }
             },
 
             renderTemplate: function() {
@@ -54,9 +60,7 @@ define(["jquery", "underscore", "gettext", "js/views/baseview", "js/views/utils/
                     addChildName = interpolate(gettext('New %(component_type)s'), {
                         component_type: childInfo.display_name
                     }, true);
-                    defaultNewChildName = interpolate(gettext('%(component_type)s'), {
-                        component_type: childInfo.display_name
-                    }, true);
+                    defaultNewChildName = childInfo.display_name;
                 }
                 html = this.template({
                     xblockInfo: xblockInfo,
@@ -78,35 +82,40 @@ define(["jquery", "underscore", "gettext", "js/views/baseview", "js/views/utils/
             },
 
             renderChildren: function() {
-                var i, children, listElement, childOutlineView;
-                listElement = this.$('.sortable-list');
+                var i, children, childOutlineView;
                 if (this.model.get('child_info')) {
                     children = this.model.get('child_info').children;
                     for (i=0; i < children.length; i++) {
                         childOutlineView = this.createChildView(children[i], this.model);
-                        childOutlineView.initialState = this.initialState;
                         childOutlineView.render();
-                        listElement.append(childOutlineView.$el);
+                        this.addChildView(childOutlineView);
                     }
                 }
                 this.renderedChildren = true;
             },
 
+            addChildView: function(childView) {
+                this.$('> .sortable-list').append(childView.$el);
+            },
+
             addNameEditor: function() {
                 var self = this,
                     xblockField = this.$('.wrapper-xblock-field'),
-                    XBlockOutlineFieldEditor;
+                    XBlockOutlineFieldEditor, nameEditor;
                 if (xblockField.length > 0) {
+                    // Make a subclass of the standard xblock string field editor which refreshes
+                    // the entire section that this view is contained in. This is necessary as
+                    // changing the name could have caused the section to change state.
                     XBlockOutlineFieldEditor = XBlockStringFieldEditor.extend({
                         refresh: function() {
                             self.refresh();
                         }
                     });
-                    this.nameEditor = new XBlockOutlineFieldEditor({
+                    nameEditor = new XBlockOutlineFieldEditor({
                         el: xblockField,
                         model: this.model
                     });
-                    this.nameEditor.render();
+                    nameEditor.render();
                 }
             },
 
@@ -163,37 +172,46 @@ define(["jquery", "underscore", "gettext", "js/views/baseview", "js/views/utils/
 
             onXBlockChange: function() {
                 var oldElement = this.$el,
-                    initialState = this.initialState || {},
-                    locatorToShow = initialState.locator_to_show,
-                    scrollOffset = initialState.scroll_offset || 0;
+                    viewState = this.initialState;
                 this.render();
                 if (this.parentInfo) {
                     oldElement.replaceWith(this.$el);
                 }
-                // If there is a non-hidden XBlock field input then give it the focus
-                this.$('.xblock-field-input:visible').first().each(function (index, element) {
-                    $(element).focus();
-                });
-                // Scroll the browser so that the selected locator is visible
-                if (locatorToShow) {
-                    this.showLocator(locatorToShow, scrollOffset);
+                if (viewState) {
+                    this.setViewState(viewState);
                 }
             },
 
-            showLocator: function(locator, scrollOffset) {
-                var selectedElement = this.$('.outline-item[data-locator="' + locator + '"]');
-                if (selectedElement) {
-                    ViewUtils.setScrollOffset(selectedElement, scrollOffset || 0);
+            setViewState: function(viewState) {
+                var locatorToShow = viewState.locator_to_show,
+                    scrollOffset = viewState.scroll_offset || 0,
+                    editDisplayName = viewState.edit_display_name,
+                    locatorElement;
+                if (locatorToShow) {
+                    if (locatorToShow === this.model.id) {
+                        locatorElement = this.$el;
+                    } else {
+                        locatorElement = this.$('.outline-item[data-locator="' + locatorToShow + '"]');
+                    }
+                    ViewUtils.setScrollOffset(locatorElement, scrollOffset);
+                    if (editDisplayName) {
+                        locatorElement.find('> .wrapper-xblock-header .xblock-field-value').click();
+                    }
                 }
+                this.initialState = null;
             },
 
             onChildAdded: function(locator, category) {
                 // For units, redirect to the new page, and for everything else just refresh inline.
                 if (category === 'vertical') {
-                    ViewUtils.redirect('/container/' + locator);
+                    this.onUnitAdded(locator);
                 } else {
                     this.refresh();
                 }
+            },
+
+            onUnitAdded: function(locator) {
+                ViewUtils.redirect('/container/' + locator + '?action=new');
             },
 
             onChildDeleted: function() {

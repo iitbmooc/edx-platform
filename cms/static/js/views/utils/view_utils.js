@@ -1,11 +1,11 @@
 /**
  * Provides useful utilities for views.
  */
-define(["jquery", "gettext", "js/views/feedback_notification", "js/views/feedback_prompt"],
-    function ($, gettext, NotificationView, PromptView) {
+define(["jquery", "underscore", "gettext", "js/views/feedback_notification", "js/views/feedback_prompt"],
+    function ($, _, gettext, NotificationView, PromptView) {
         var toggleExpandCollapse, showLoadingIndicator, hideLoadingIndicator, confirmThenRunOperation,
             runOperationShowingMessage, disableElementWhileRunning, getScrollOffset, setScrollOffset,
-            setScrollTop, redirect;
+            setScrollTop, redirect, hasChangedAttributes;
 
         toggleExpandCollapse = function(event) {
             var target = $(event.target);
@@ -121,6 +121,23 @@ define(["jquery", "gettext", "js/views/feedback_notification", "js/views/feedbac
             window.location = url;
         };
 
+        /**
+         * Returns true if a model has changes to at least one of the specified attributes.
+         * @param attributes
+         */
+        hasChangedAttributes = function(model, attributes) {
+            var i, changedAttributes = model.changedAttributes();
+            if (!changedAttributes) {
+                return false;
+            }
+            for (i=0; i < attributes.length; i++) {
+                if (changedAttributes.hasOwnProperty(attributes[i])) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
         return {
             'toggleExpandCollapse': toggleExpandCollapse,
             'showLoadingIndicator': showLoadingIndicator,
@@ -131,6 +148,7 @@ define(["jquery", "gettext", "js/views/feedback_notification", "js/views/feedbac
             'setScrollTop': setScrollTop,
             'getScrollOffset': getScrollOffset,
             'setScrollOffset': setScrollOffset,
-            'redirect': redirect
+            'redirect': redirect,
+            'hasChangedAttributes': hasChangedAttributes
         };
     });

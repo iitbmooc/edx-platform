@@ -1,5 +1,16 @@
-define(["jquery", "underscore", "gettext", "js/views/xblock_outline", "js/views/utils/view_utils"],
-    function($, _, gettext, XBlockOutlineView, ViewUtils) {
+/**
+ * The CourseOutlineView is used to render the contents of the course for the Course Outline page.
+ * It is a recursive set of views, where each XBlock has its own instance, and each of the children
+ * are shown as child CourseOutlineViews.
+ *
+ * This class extends XBlockOutlineView to add unique capabilities needed by the course outline:
+ *  - sections are initially expanded but subsections and other children are shown as collapsed
+ *  - changes cause a refresh of the entire section rather than just the view for the changed xblock
+ *  - adding units will automatically redirect to the unit page rather than showing them inline
+ */
+define(["jquery", "underscore", "js/views/xblock_outline", "js/views/utils/view_utils",
+        "js/models/xblock_outline_info"],
+    function($, _, XBlockOutlineView, ViewUtils, XBlockOutlineInfo) {
 
         var CourseOutlineView = XBlockOutlineView.extend({
             // takes XBlockOutlineInfo as a model
@@ -11,9 +22,9 @@ define(["jquery", "underscore", "gettext", "js/views/xblock_outline", "js/views/
                 if (this.initialState && _.indexOf(this.initialState.expanded_locators, this.model.id) >= 0) {
                     return true;
                 }
-                // Only expand sections initially
+                // Only expand the course and its chapters (aka sections) initially
                 var category = this.model.get('category');
-                return this.renderedChildren || category === 'course' || category === 'chapter';
+                return category === 'course' || category === 'chapter';
             },
 
             shouldRenderChildren: function() {
@@ -50,14 +61,17 @@ define(["jquery", "underscore", "gettext", "js/views/xblock_outline", "js/views/
              * @returns {*} A promise representing the refresh operation.
              */
             refresh: function(viewState) {
-                var getViewToRefresh = function(view) {
-                        if (view.model.get('category') === 'chapter' || !view.parentView) {
-                            return view;
-                        }
-                        return getViewToRefresh(view.parentView);
-                    },
-                    view = getViewToRefresh(this),
-                    expandedLocators = view.getExpandedLocators();
+                var getViewToRefresh, view, expandedLocators;
+
+                getViewToRefresh = function(view) {
+                    if (view.model.get('category') === 'chapter' || !view.parentView) {
+                        return view;
+                    }
+                    return getViewToRefresh(view.parentView);
+                };
+
+                view = getViewToRefresh(this);
+                expandedLocators = view.getExpandedLocators();
                 viewState = viewState || {};
                 viewState.expanded_locators = expandedLocators.concat(viewState.expanded_locators || []);
                 view.initialState = viewState;
@@ -65,22 +79,51 @@ define(["jquery", "underscore", "gettext", "js/views/xblock_outline", "js/views/
             },
 
             onChildAdded: function(locator, category, event) {
-                var targetOffset = ViewUtils.getScrollOffset($(event.target));
-                // For units, redirect to the new page, and for everything else just refresh inline.
                 if (category === 'vertical') {
-                    ViewUtils.redirect('/container/' + locator);
+                    // For units, redirect to the new unit's page in inline edit mode
+                    this.onUnitAdded(locator);
+                } else if (category === 'chapter' && this.model.hasChildren()) {
+                    this.onSectionAdded(locator);
                 } else {
-                    // Refresh the view and do the following:
+                    // For all other block types, refresh the view and do the following:
                     //  - show the new block expanded
                     //  - ensure it is scrolled into view
                     //  - make its name editable
-                    this.refresh({
-                        locator_to_show: locator,
-                        edit_display_name: locator,
-                        expanded_locators: [ locator ],
-                        scroll_offset: targetOffset
-                    });
+                    this.refresh(this.createNewItemViewState(locator, ViewUtils.getScrollOffset($(event.target))));
                 }
+            },
+
+            onSectionAdded: function(locator) {
+                var self = this,
+                    initialState = self.createNewItemViewState(locator),
+                    sectionInfo, sectionView;
+                // For new chapters in a non-empty view, add a new child view and render it
+                // to avoid the expense of refreshing the entire page.
+                if (this.model.hasChildren()) {
+                    sectionInfo = new XBlockOutlineInfo({
+                        id: locator,
+                        category: 'chapter'
+                    });
+                    // Fetch the full xblock info for the section and then create a view for it
+                    sectionInfo.fetch().done(function() {
+                        sectionView = self.createChildView(sectionInfo, self.model, self);
+                        sectionView.initialState = initialState;
+                        sectionView.render();
+                        self.addChildView(sectionView);
+                        sectionView.setViewState(initialState);
+                    });
+                } else {
+                    this.refresh(initialState);
+                }
+            },
+
+            createNewItemViewState: function(locator, scrollOffset) {
+                return {
+                    locator_to_show: locator,
+                    edit_display_name: true,
+                    expanded_locators: [ locator ],
+                    scroll_offset: scrollOffset || 0
+                };
             }
         });
 

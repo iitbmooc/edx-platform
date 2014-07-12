@@ -48,9 +48,9 @@ define(["jquery", "js/views/feedback_notification", "js/views/feedback_prompt"],
             return promptSpy;
         };
 
-        confirmPrompt = function(promptSpy, pressSecond) {
+        confirmPrompt = function(promptSpy, pressSecondaryButton) {
             expect(promptSpy.constructor).toHaveBeenCalled();
-            if (pressSecond) {
+            if (pressSecondaryButton) {
                 promptSpy.constructor.mostRecentCall.args[0].actions.secondary.click(promptSpy);
             } else {
                 promptSpy.constructor.mostRecentCall.args[0].actions.primary.click(promptSpy);
